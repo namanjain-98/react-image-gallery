@@ -1,71 +1,138 @@
-import React, { useState, useEffect } from 'react';
-import { Heading } from './components/Heading';
-import { UnsplashImage } from './components/UnsplashImage';
+import './App.css';
+import { useState, useEffect } from 'react'
+import { FlickerImage } from './components/FlickerImage';
 import { Loader } from './components/Loader';
+import HistoryList  from './components/HistoryList';
 import axios from 'axios';
 import InfiniteScroll from 'react-infinite-scroll-component';
-
-import styled from 'styled-components';
-import { createGlobalStyle } from 'styled-components';
-
-// Style
-const GlobalStyle = createGlobalStyle`
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: sans-serif;
-  }
-`;
-
-const WrapperImages = styled.section`
-  max-width: 70rem;
-  margin: 4rem auto;
-  display: grid;
-  grid-gap: 1em;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  grid-auto-rows: 300px;
-`;
+import Modal from 'react-modal'
 
 function App() {
-  const [images, setImage] = useState([]);
 
-  useEffect(() => {
-    fetchImages();
-  }, [])
+  const [Query, setQuery] = useState('');
 
-  const fetchImages = (count = 10) => {
-    const apiRoot = "https://api.unsplash.com";
-    const accessKey = process.env.REACT_APP_ACCESSKEY;
+  const [ImageList, setImageList] = useState([]);
 
-    axios
-      .get(`${apiRoot}/photos/random?client_id=${accessKey}&count=${count}`)
-      .then(res => {
-        setImage([...images, ...res.data]);
-      })
+  const [currentImg, setCurrentImg] = useState(null);
+
+  let queryHistory;
+  if (localStorage.getItem("queryHistory") === null) {
+    queryHistory = [];
+  }
+  else {
+    queryHistory = JSON.parse(localStorage.getItem("queryHistory"));
+  }
+
+  
+const modalStyle = {
+  content: {
+    border: "none",
+    padding: "none",
+    overflow: "none",
+    background: "none",
+    display: "flex",
+    alignItems: "center",
+    alignContent:"center",
+    justifyContent:"center",
+    marginTop:"20px",
+    marginBottom:"20px",
+    
+  },
+  overlay: {
+    position: 'fixed',
+    top: "20%",
+    left: "20%",
+    right: "20%",
+    bottom: "20%",
+    
+  }
+
+};
+
+  function SearchImages(query) {
+    console.log("search")
+    console.log(query)
+    localStorage.setItem("queryHistory", JSON.stringify([...queryHistory,query]));
+    const baseURL2 = `https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=0af65637c5d7a611ef9b48629543c491&tags=${query}&per_page=15&format=json&nojsoncallback=1`
+    axios.get(baseURL2).then((data) => {
+      setImageList([...ImageList,...data.data.photos.photo]);
+    })
+    
+    return true;
+   
+  
+  }
+
+  function RecentImages() {
+    console.log("recent called")
+    const baseURL1 = "https://www.flickr.com/services/rest/?method=flickr.photos.getRecent&api_key=0af65637c5d7a611ef9b48629543c491&per_page=15&format=json&nojsoncallback=1"
+    axios.get(baseURL1).then((data) => {
+      setImageList([...ImageList,...data.data.photos.photo]);
+    })
+    
+    return true;
   }
 
 
+  useEffect(() => {
+    if (Query.length===0) {
+      console.log("hi 1");
+      RecentImages();
+    } else {
+      console.log("hi 2")
+
+      SearchImages(Query);
+    }
+  
+  }, [Query]);
+
+
+
+  Modal.setAppElement("#root");
+
   return (
-    <div>
-      <Heading />
-      <GlobalStyle />
+    <div className="App">
+      <header className="App-header">
+        <h2>Image Search </h2>
+        <div className="search-bar">
+          <input type="text" onChange={(e) => setQuery(e.target.value)} />
+        <HistoryList list={queryHistory}/>
+        </div>
+      </header>
+
+      <Modal
+        contentLabel="Image preview"
+        style={modalStyle}
+        isOpen={!!currentImg}
+        onRequestClose={() => setCurrentImg(null)}
+      >
+        <img className="img-preview" src={currentImg} alt="image preview" />
+      </Modal>
+      
+
       <InfiniteScroll
-        dataLength={images.length}
-        next={fetchImages}
+        dataLength={ImageList.length}
+        next={RecentImages}
         hasMore={true}
         loader={<Loader />}
       >
-        <WrapperImages>
-          {images.map(image => (
-            <UnsplashImage url={image.urls.thumb} key={image.id} />
-          ))}
-        </WrapperImages>
+       <div className="gallery">
+        {
+          ImageList.map(
+
+            (img) => {
+              return (
+                <FlickerImage url={`https://live.staticflickr.com/${img.server}/${img.id}_${img.secret}_c.jpg`} key={img.id} handleClick={setCurrentImg} />
+              )
+            }
+          )
+        }
+        </div>
+      
       </InfiniteScroll>
     </div>
+
+
   );
 }
 
