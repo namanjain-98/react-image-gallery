@@ -15,6 +15,8 @@ function App() {
 
   const [currentImg, setCurrentImg] = useState(null);
 
+
+  //initialising a list in local storage
   let queryHistory;
   if (localStorage.getItem("queryHistory") === null) {
     queryHistory = [];
@@ -23,32 +25,28 @@ function App() {
     queryHistory = JSON.parse(localStorage.getItem("queryHistory"));
   }
 
-  
+//styling for modal
 const modalStyle = {
   content: {
     border: "none",
     padding: "none",
-    overflow: "none",
+    overflow: "hidden",
     background: "none",
     display: "flex",
     alignItems: "center",
     alignContent:"center",
     justifyContent:"center",
-    marginTop:"20px",
-    marginBottom:"20px",
-    
+    margin:"none",
   },
   overlay: {
-    position: 'fixed',
-    top: "20%",
-    left: "20%",
-    right: "20%",
-    bottom: "20%",
-    
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,  
   }
-
 };
 
+//function to search images accoding to input by user in search bar using axios
   function SearchImages(query) {
     console.log("search")
     console.log(query)
@@ -56,34 +54,36 @@ const modalStyle = {
     const baseURL2 = `https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=0af65637c5d7a611ef9b48629543c491&tags=${query}&per_page=15&format=json&nojsoncallback=1`
     axios.get(baseURL2).then((data) => {
       setImageList([...ImageList,...data.data.photos.photo]);
-    })
-    
+    })   
     return true;
-   
-  
   }
 
+  //function to get recent images as default using axios
   function RecentImages() {
     console.log("recent called")
     const baseURL1 = "https://www.flickr.com/services/rest/?method=flickr.photos.getRecent&api_key=0af65637c5d7a611ef9b48629543c491&per_page=15&format=json&nojsoncallback=1"
     axios.get(baseURL1).then((data) => {
       setImageList([...ImageList,...data.data.photos.photo]);
-    })
-    
+    })  
     return true;
   }
 
+  //common funnction to select between SearchImage and RecentImage
+  function FetchImages(query=Query) {
 
-  useEffect(() => {
-    if (Query.length===0) {
-      console.log("hi 1");
+    if (query===""|| query===undefined || query === null) {
+      setImageList([]);
       RecentImages();
     } else {
-      console.log("hi 2")
-
-      SearchImages(Query);
+      setImageList([]);
+      SearchImages(query);
     }
-  
+    return true;
+  }
+
+  useEffect(() => {
+    setImageList([]);
+  FetchImages(Query);
   }, [Query]);
 
 
@@ -95,8 +95,8 @@ const modalStyle = {
       <header className="App-header">
         <h2>Image Search </h2>
         <div className="search-bar">
-          <input type="text" onChange={(e) => setQuery(e.target.value)} />
-        <HistoryList list={queryHistory}/>
+          <input type="text" onChange={(e) => setQuery(e.target.value)} /> 
+        <HistoryList list={queryHistory} /* search={FetchImages} *//>
         </div>
       </header>
 
@@ -105,14 +105,15 @@ const modalStyle = {
         style={modalStyle}
         isOpen={!!currentImg}
         onRequestClose={() => setCurrentImg(null)}
+        
       >
-        <img className="img-preview" src={currentImg} alt="image preview" />
+        <img className="img-preview" src={currentImg} onClick={()=>setCurrentImg(null)} alt="image preview" />
       </Modal>
       
 
       <InfiniteScroll
         dataLength={ImageList.length}
-        next={RecentImages}
+        next={FetchImages}
         hasMore={true}
         loader={<Loader />}
       >
@@ -127,12 +128,9 @@ const modalStyle = {
             }
           )
         }
-        </div>
-      
+        </div>      
       </InfiniteScroll>
     </div>
-
-
   );
 }
 

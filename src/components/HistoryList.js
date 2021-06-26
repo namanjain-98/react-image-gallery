@@ -1,7 +1,7 @@
 import React from 'react'
 import { ListGroup, ListGroupItem } from 'reactstrap';
 
-export default function HistoryList({ list }) {
+export default function HistoryList({ list , fetchImages }) {
     return (
         <div className="ListGroup">
              {
@@ -9,7 +9,7 @@ export default function HistoryList({ list }) {
   
               (item) => {
                 return (
-                  <div className="ListGroupItem active" > {item} </div>
+                  <div className="ListGroupItem active" onClick={(item)=>{fetchImages(item)}}> {item} </div>
                 )
               }
             )
